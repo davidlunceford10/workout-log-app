@@ -26,5 +26,5 @@ variable "docker_image" {
   description = "Docker image to deploy (format: username/image:tag)"
   type        = string
   # This will be provided via GitHub Secrets or command line
-  # Example: "yourusername/fittrack:latest" # 
+  # Example: "yourusername/fittrack:latest" 
 }
