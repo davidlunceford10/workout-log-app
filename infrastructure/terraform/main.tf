@@ -1,3 +1,31 @@
+# -------------------------
+# Security Group
+# -------------------------
+resource "aws_security_group" "fittrack_sg" {
+  name_prefix = "fittrack-sg-"
+  description = "Security group for FitTrack application"
+
+  ingress {
+    description = "FitTrack app"
+    from_port   = 3000
+    to_port     = 3000
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  tags = {
+    Name = "fittrack-sg"
+  }
+}
+
+
 resource "aws_instance" "fittrack_server" {
   ami           = var.ami_id
   instance_type = var.instance_type

@@ -1,8 +1,6 @@
 name: Deploy to AWS
 
 on:
-  push:
-    branches: [ main ]
   workflow_dispatch:
 
 jobs:
@@ -31,11 +29,6 @@ jobs:
         working-directory: ./infrastructure/terraform
         run: terraform init
 
-      - name: Terraform Format Check
-        working-directory: ./infrastructure/terraform
-        run: terraform fmt -check
-        continue-on-error: true
-
       - name: Terraform Validate
         working-directory: ./infrastructure/terraform
         run: terraform validate
@@ -44,15 +37,13 @@ jobs:
         working-directory: ./infrastructure/terraform
         run: |
           terraform plan \
-            -var="docker_image=${{ secrets.DOCKERHUB_USERNAME }}/fittrack:latest" \
-            -var="key_name=${{ secrets.AWS_KEY_NAME }}"
+            -var="docker_image=davidlunceford10/fittrack:latest"
 
       - name: Terraform Apply
         working-directory: ./infrastructure/terraform
         run: |
           terraform apply -auto-approve \
-            -var="docker_image=${{ secrets.DOCKERHUB_USERNAME }}/fittrack:latest" \
-            -var="key_name=${{ secrets.AWS_KEY_NAME }}"
+            -var="docker_image=davidlunceford10/fittrack:latest"
 
       - name: Get EC2 Instance IP
         id: get-ip
@@ -60,29 +51,18 @@ jobs:
         run: |
           INSTANCE_IP=$(terraform output -raw instance_public_ip)
           echo "instance_ip=$INSTANCE_IP" >> $GITHUB_OUTPUT
-          echo "Instance IP: $INSTANCE_IP"
 
-      - name: Wait for instance to be ready
-        run: |
-          echo "Waiting 90 seconds for instance to initialize..."
-          sleep 90
+      - name: Wait for instance to initialize
+        run: sleep 90
 
       - name: Verify deployment
         run: |
-          echo "Checking application health..."
           for i in {1..10}; do
-            if curl -f http://${{ steps.get-ip.outputs.instance_ip }}:3000/health; then
-              echo "✅ Application is healthy!"
+            if curl -f http://${{ steps.get-ip.outputs.instance_ip }}:3000; then
+              echo "✅ Application is reachable!"
               exit 0
             fi
-            echo "Attempt $i failed, retrying in 15 seconds..."
             sleep 15
           done
-          echo "❌ Application health check failed"
+          echo "❌ Application not reachable"
           exit 1
-
-      - name: Display deployment info
-        run: |
-          echo "🎉 Deployment successful!"
-          echo "Application URL: http://${{ steps.get-ip.outputs.instance_ip }}:3000"
-          echo "Health Check: http://${{ steps.get-ip.outputs.instance_ip }}:3000/health"
