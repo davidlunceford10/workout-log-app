@@ -15,7 +15,7 @@ provider "aws" {
 
 # Security Group
 resource "aws_security_group" "fittrack_sg" {
-  name        = "fittrack-security-group"
+  name_prefix = "fittrack-sg-"
   description = "Security group for FitTrack application"
 
   lifecycle {
