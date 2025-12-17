@@ -1,6 +1,6 @@
 terraform {
   required_version = ">= 1.0"
-  
+
   required_providers {
     aws = {
       source  = "hashicorp/aws"
@@ -13,6 +13,7 @@ provider "aws" {
   region = var.aws_region
 }
 
+# Security Group
 resource "aws_security_group" "fittrack_sg" {
   name        = "fittrack-security-group"
   description = "Security group for FitTrack application"
@@ -20,7 +21,6 @@ resource "aws_security_group" "fittrack_sg" {
   lifecycle {
     create_before_destroy = true
   }
-}
 
   # SSH access
   ingress {
@@ -62,43 +62,34 @@ resource "aws_instance" "fittrack_server" {
   instance_type = var.instance_type
   key_name      = var.key_name
 
-  vpc_security_group_ids = [aws_security_group.fittrack_sg.id]
+  vpc_security_group_ids = [
+    aws_security_group.fittrack_sg.id
+  ]
 
-  # User data script to install Docker and run the application
   user_data = <<-EOF
-              #!/bin/bash
-              set -e
-              
-              # Update system
-              yum update -y
-              
-              # Install Docker
-              yum install docker -y
-              service docker start
-              usermod -a -G docker ec2-user
-              
-              # Enable Docker to start on boot
-              chkconfig docker on
-              
-              # Pull and run the Docker container
-              docker pull ${var.docker_image}
-              
-              # Run container with restart policy
-              docker run -d \
-                -p 3000:3000 \
-                --name fittrack \
-                --restart unless-stopped \
-                -v /var/lib/fittrack:/app/data \
-                ${var.docker_image}
-              
-              # Wait for container to start
-              sleep 10
-              
-              # Check if container is running
-              docker ps | grep fittrack
-              EOF
+    #!/bin/bash
+    set -e
 
-  # Wait for instance to be ready
+    yum update -y
+
+    yum install -y docker
+    service docker start
+    usermod -a -G docker ec2-user
+    chkconfig docker on
+
+    docker pull ${var.docker_image}
+
+    docker run -d \
+      -p 3000:3000 \
+      --name fittrack \
+      --restart unless-stopped \
+      -v /var/lib/fittrack:/app/data \
+      ${var.docker_image}
+
+    sleep 10
+    docker ps | grep fittrack
+  EOF
+
   user_data_replace_on_change = true
 
   tags = {
@@ -133,5 +124,3 @@ output "health_check_url" {
   description = "URL to check application health"
   value       = "http://${aws_instance.fittrack_server.public_ip}:3000/health"
 }
-
-
