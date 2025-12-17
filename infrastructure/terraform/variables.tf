@@ -16,11 +16,6 @@ variable "instance_type" {
   default     = "t2.micro"  # Free tier eligible
 }
 
-variable "key_name" {
-  description = "Name of the SSH key pair"
-  type        = string
-  # This will be provided via GitHub Secrets or command line
-}
 
 variable "docker_image" {
   description = "Docker image to deploy (format: username/image:tag)"
