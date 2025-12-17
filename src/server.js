@@ -42,11 +42,11 @@ app.use((err, req, res, next) => {
   res.status(500).json({ error: 'Internal server error' });
 });
 
-// Start server (only if not being imported for testing)
+// Start server (FIXED FOR DOCKER/AWS)
 if (require.main === module) {
-  const server = app.listen(PORT, () => {
-    console.log(`✅ FitTrack server running on http://localhost:${PORT}`);
-    console.log(`📊 Health check: http://localhost:${PORT}/health`);
+  const server = app.listen(PORT, '0.0.0.0', () => {
+    console.log(`✅ FitTrack server running on port ${PORT}`);
+    console.log(`📊 Health check: http://0.0.0.0:${PORT}/health`);
   });
 
   // Graceful shutdown
