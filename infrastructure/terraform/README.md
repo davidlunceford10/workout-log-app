@@ -49,4 +49,4 @@ terraform destroy \
 
 - `instance_public_ip`: Public IP of EC2 instance
 - `application_url`: Full URL to access FitTrack
-- `health_check_url`: Health check endpoint URL # 
+- `health_check_url`: Health check endpoint URL 
