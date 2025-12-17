@@ -6,8 +6,13 @@ const workoutRoutes = require('./routes/workouts');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Initialize database
-const db = new Database();
+// ✅ FIX: DB path depends on environment
+const dbPath =
+  process.env.NODE_ENV === 'production'
+    ? '/app/data/workouts.db'
+    : undefined; // tests + local use default
+
+const db = new Database(dbPath);
 
 // Middleware
 app.use(express.json());
@@ -17,12 +22,12 @@ app.use(express.static(path.join(__dirname, 'public')));
 // API Routes
 app.use(workoutRoutes(db));
 
-// Health check endpoint
+// ✅ REQUIRED by deploy.yml
 app.get('/health', (req, res) => {
-  res.json({ 
-    status: 'healthy', 
-    timestamp: new Date().toISOString(),
-    uptime: process.uptime()
+  res.json({
+    status: 'healthy',
+    uptime: process.uptime(),
+    timestamp: new Date().toISOString()
   });
 });
 
@@ -42,32 +47,12 @@ app.use((err, req, res, next) => {
   res.status(500).json({ error: 'Internal server error' });
 });
 
-// Start server (FIXED FOR DOCKER/AWS)
+// ✅ ONLY start server when run normally (not tests)
 if (require.main === module) {
-  const server = app.listen(PORT, '0.0.0.0', () => {
-    console.log(`✅ FitTrack server running on port ${PORT}`);
-    console.log(`📊 Health check: http://0.0.0.0:${PORT}/health`);
-  });
-
-  // Graceful shutdown
-  process.on('SIGTERM', () => {
-    console.log('SIGTERM received, shutting down gracefully...');
-    server.close(() => {
-      console.log('Server closed');
-      db.close();
-      process.exit(0);
-    });
-  });
-
-  process.on('SIGINT', () => {
-    console.log('\nSIGINT received, shutting down gracefully...');
-    server.close(() => {
-      console.log('Server closed');
-      db.close();
-      process.exit(0);
-    });
+  app.listen(PORT, '0.0.0.0', () => {
+    console.log(`🚀 FitTrack server running on port ${PORT}`);
   });
 }
 
-// Export for testing
+// ✅ Tests still work
 module.exports = { app, db };
