@@ -3,92 +3,86 @@ name: Deploy to AWS
 on:
   push:
     branches: [ main ]
-  workflow_dispatch:  # Allows manual trigger
+  workflow_dispatch:
 
 jobs:
   deploy:
     name: Deploy to EC2
     runs-on: ubuntu-latest
-    
+
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v3
-    
-    - name: Configure AWS credentials
-      uses: aws-actions/configure-aws-credentials@v2
-      with:
-        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        aws-region: us-east-1
-    
-    - name: Setup Terraform
-      uses: hashicorp/setup-terraform@v2
-      with:
-        terraform_version: 1.5.0
-        terraform_wrapper: false
-    
-    - name: Terraform Init
-      working-directory: ./infrastructure/terraform
-      run: terraform init
-    
-    - name: Terraform Format Check
-      working-directory: ./infrastructure/terraform
-      run: terraform fmt -check
-      continue-on-error: true
-    
-    - name: Terraform Validate
-      working-directory: ./infrastructure/terraform
-      run: terraform validate
-    
-    - name: Terraform Plan
-      working-directory: ./infrastructure/terraform
-      run: |
-        terraform plan \
-          -var="docker_image=${{ secrets.DOCKERHUB_USERNAME }}/fittrack:latest" \
-          -var="key_name=${{ secrets.AWS_KEY_NAME }}" \
-          -out=tfplan
-    
-    - name: Cleanup existing resources (if any)
-      working-directory: ./infrastructure/terraform
-      run: |
-        terraform destroy -auto-approve \
-          -var="docker_image=${{ secrets.DOCKERHUB_USERNAME }}/fittrack:latest" \
-          -var="key_name=${{ secrets.AWS_KEY_NAME }}" || true
-      continue-on-error: true
-    
-    - name: Terraform Apply
-      working-directory: ./infrastructure/terraform
-      run: terraform apply -auto-approve tfplan
-    
-    - name: Get EC2 Instance IP
-      id: get-ip
-      working-directory: ./infrastructure/terraform
-      run: |
-        INSTANCE_IP=$(terraform output -raw instance_public_ip)
-        echo "instance_ip=$INSTANCE_IP" >> $GITHUB_OUTPUT
-        echo "Instance IP: $INSTANCE_IP"
-    
-    - name: Wait for instance to be ready
-      run: |
-        echo "Waiting 90 seconds for instance to initialize..."
-        sleep 90
-    
-    - name: Verify deployment
-      run: |
-        echo "Checking application health..."
-        for i in {1..10}; do
-          if curl -f http://${{ steps.get-ip.outputs.instance_ip }}:3000/health; then
-            echo "✅ Application is healthy!"
-            exit 0
-          fi
-          echo "Attempt $i failed, retrying in 15 seconds..."
-          sleep 15
-        done
-        echo "❌ Application health check failed"
-        exit 1
-    
-    - name: Display deployment info
-      run: |
-        echo "🎉 Deployment successful!"
-        echo "Application URL: http://${{ steps.get-ip.outputs.instance_ip }}:3000"
-        echo "Health Check: http://${{ steps.get-ip.outputs.instance_ip }}:3000/health"
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: 1.5.0
+          terraform_wrapper: false
+
+      - name: Terraform Init
+        working-directory: ./infrastructure/terraform
+        run: terraform init
+
+      - name: Terraform Format Check
+        working-directory: ./infrastructure/terraform
+        run: terraform fmt -check
+        continue-on-error: true
+
+      - name: Terraform Validate
+        working-directory: ./infrastructure/terraform
+        run: terraform validate
+
+      - name: Terraform Plan
+        working-directory: ./infrastructure/terraform
+        run: |
+          terraform plan \
+            -var="docker_image=${{ secrets.DOCKERHUB_USERNAME }}/fittrack:latest" \
+            -var="key_name=${{ secrets.AWS_KEY_NAME }}"
+
+      - name: Terraform Apply
+        working-directory: ./infrastructure/terraform
+        run: |
+          terraform apply -auto-approve \
+            -var="docker_image=${{ secrets.DOCKERHUB_USERNAME }}/fittrack:latest" \
+            -var="key_name=${{ secrets.AWS_KEY_NAME }}"
+
+      - name: Get EC2 Instance IP
+        id: get-ip
+        working-directory: ./infrastructure/terraform
+        run: |
+          INSTANCE_IP=$(terraform output -raw instance_public_ip)
+          echo "instance_ip=$INSTANCE_IP" >> $GITHUB_OUTPUT
+          echo "Instance IP: $INSTANCE_IP"
+
+      - name: Wait for instance to be ready
+        run: |
+          echo "Waiting 90 seconds for instance to initialize..."
+          sleep 90
+
+      - name: Verify deployment
+        run: |
+          echo "Checking application health..."
+          for i in {1..10}; do
+            if curl -f http://${{ steps.get-ip.outputs.instance_ip }}:3000/health; then
+              echo "✅ Application is healthy!"
+              exit 0
+            fi
+            echo "Attempt $i failed, retrying in 15 seconds..."
+            sleep 15
+          done
+          echo "❌ Application health check failed"
+          exit 1
+
+      - name: Display deployment info
+        run: |
+          echo "🎉 Deployment successful!"
+          echo "Application URL: http://${{ steps.get-ip.outputs.instance_ip }}:3000"
+          echo "Health Check: http://${{ steps.get-ip.outputs.instance_ip }}:3000/health"
