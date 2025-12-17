@@ -13,10 +13,14 @@ provider "aws" {
   region = var.aws_region
 }
 
-# Security Group for EC2 Instance
 resource "aws_security_group" "fittrack_sg" {
   name        = "fittrack-security-group"
   description = "Security group for FitTrack application"
+
+  lifecycle {
+    create_before_destroy = true
+  }
+}
 
   # SSH access
   ingress {
