@@ -64,3 +64,13 @@ resource "aws_instance" "fittrack_server" {
     Environment = "production"
   }
 }
+
+output "instance_public_ip" {
+  description = "Public IP of the EC2 instance"
+  value       = aws_instance.fittrack_server.public_ip
+}
+
+output "application_url" {
+  description = "URL of the FitTrack application"
+  value       = "http://${aws_instance.fittrack_server.public_ip}:3000"
+}
