@@ -6,34 +6,68 @@ const workoutRoutes = require('./routes/workouts');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// ✅ FIX 1: Use ABSOLUTE path for Docker
-const db = new Database('/app/data/workouts.db');
+// Initialize database
+const db = new Database();
 
 // Middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use(express.static(path.join(__dirname, 'public')));
 
-// API routes
+// API Routes
 app.use(workoutRoutes(db));
 
-// ✅ REQUIRED for deploy.yml health check
+// Health check endpoint
 app.get('/health', (req, res) => {
-  res.json({
-    status: 'healthy',
-    uptime: process.uptime(),
-    timestamp: new Date().toISOString()
+  res.json({ 
+    status: 'healthy', 
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime()
   });
 });
 
-// Serve frontend
-app.use(express.static(path.join(__dirname, 'public')));
-
-// SPA fallback
-app.get('*', (req, res) => {
+// Serve main page
+app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-// Start server (Docker + AWS safe)
-app.listen(PORT, '0.0.0.0', () => {
-  console.log(`🚀 FitTrack running on port ${PORT}`);
+// 404 handler
+app.use((req, res) => {
+  res.status(404).json({ error: 'Not found' });
 });
+
+// Error handler
+app.use((err, req, res, next) => {
+  console.error('Server error:', err);
+  res.status(500).json({ error: 'Internal server error' });
+});
+
+// Start server (FIXED FOR DOCKER/AWS)
+if (require.main === module) {
+  const server = app.listen(PORT, '0.0.0.0', () => {
+    console.log(`✅ FitTrack server running on port ${PORT}`);
+    console.log(`📊 Health check: http://0.0.0.0:${PORT}/health`);
+  });
+
+  // Graceful shutdown
+  process.on('SIGTERM', () => {
+    console.log('SIGTERM received, shutting down gracefully...');
+    server.close(() => {
+      console.log('Server closed');
+      db.close();
+      process.exit(0);
+    });
+  });
+
+  process.on('SIGINT', () => {
+    console.log('\nSIGINT received, shutting down gracefully...');
+    server.close(() => {
+      console.log('Server closed');
+      db.close();
+      process.exit(0);
+    });
+  });
+}
+
+// Export for testing
+module.exports = { app, db };
