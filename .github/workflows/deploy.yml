@@ -53,7 +53,11 @@ jobs:
           echo "instance_ip=$INSTANCE_IP" >> $GITHUB_OUTPUT
 
       - name: Wait for instance to initialize
-        run: sleep 90
+        run: |
+          echo "Waiting for instance to fully initialize..."
+          sleep 120
+          echo "Wait complete, proceeding to verify deployment"
+
 
       - name: Verify deployment
         run: |

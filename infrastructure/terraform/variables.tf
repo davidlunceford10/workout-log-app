@@ -5,11 +5,9 @@ variable "aws_region" {
 }
 
 variable "ami_id" {
-  description = "AMI ID for EC2 instance (Amazon Linux 2)"
+  description = "AMI ID for EC2 instance (Amazon Linux 2023)"
   type        = string
-  # Amazon Linux 2 AMI for us-east-1 (update this if needed)
-  # To find the latest: AWS Console > EC2 > AMIs > Search for "amazon-linux-2"
-  default     = "ami-0c02fb55731490381"  # Amazon Linux 2
+  default     = "ami-068c0051b15cdb816"  # Amazon Linux 2023 AMI in us-east-1
 }
 
 variable "instance_type" {
