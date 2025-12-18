@@ -5,9 +5,11 @@ variable "aws_region" {
 }
 
 variable "ami_id" {
-  description = "AMI ID for EC2 instance (Amazon Linux 2023)"
+  description = "AMI ID for EC2 instance (Amazon Linux 2)"
   type        = string
-  default     = "ami-068c0051b15cdb816"  # Amazon Linux 2023 in us-east-1
+  # Amazon Linux 2 AMI for us-east-1 (update this if needed)
+  # To find the latest: AWS Console > EC2 > AMIs > Search for "amazon-linux-2"
+  default     = "ami-0c02fb55731490381"  # Amazon Linux 2
 }
 
 variable "instance_type" {
@@ -16,10 +18,9 @@ variable "instance_type" {
   default     = "t2.micro"  # Free tier eligible
 }
 
-
 variable "docker_image" {
   description = "Docker image to deploy (format: username/image:tag)"
   type        = string
   # This will be provided via GitHub Secrets or command line
-  # Example: "yourusername/fittrack:latest" 
+  # Example: "davidlunceford10/fittrack:latest" 
 }
